@@ -127,6 +127,7 @@ found:
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
 
+  p->kama_syscall_trace = 0;
   return p;
 }
 
@@ -296,6 +297,8 @@ fork(void)
   np->state = RUNNABLE;
 
   release(&np->lock);
+
+  np->kama_syscall_trace = p->kama_syscall_trace;
 
   return pid;
 }
@@ -692,4 +695,54 @@ procdump(void)
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
   }
+}
+
+// kernel/proc.c
+// 统计处于活动状态的进程
+void
+kama_procnum(uint64* dst) {
+    *dst = 0;
+    struct proc* p;
+    for (p = proc;p < &proc[NPROC];p++) {
+        if (p->state != UNUSED)
+            (*dst)++;
+    }
+}
+
+// 用于计算负载的常量
+#define FSHIFT 10                  // 定点数精度(2^10 = 1024)
+#define FIXED_1 (1 << FSHIFT)      // 1.0表示为1024
+#define LOAD_INT(x) ((x) >> FSHIFT)
+#define LOAD_FRAC(x) (((x) & (FIXED_1-1)) * 100 / FIXED_1)
+
+// 全局变量跟踪系统负载
+static uint64 kama_system_load = 0;  // 当前系统负载(定点数)
+
+// 计算当前系统负载：计算可运行进程数
+static void kama_calc_load(void)
+{
+  struct proc *p;
+  int runnable = 0;
+  
+  // 计算处于RUNNABLE或RUNNING状态的进程数量
+  for(p = proc; p < &proc[NPROC]; p++) {
+    acquire(&p->lock);
+    if(p->state == RUNNABLE || p->state == RUNNING)
+      runnable++;
+    release(&p->lock);
+  }
+  
+  // 更新系统负载(简单实现,仅使用当前值)
+  // 在实际系统中通常会使用指数加权移动平均值
+  kama_system_load = runnable << FSHIFT;
+}
+
+// 获取系统负载给sysinfo结构体
+void kama_loadavg(uint64 *loadavg)
+{
+  // 先计算当前负载
+  kama_calc_load();
+  
+  // 填充到传入的指针
+  *loadavg = kama_system_load;
 }

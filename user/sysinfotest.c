@@ -120,13 +120,34 @@ void testproc() {
   }
 }
 
+// int
+// main(int argc, char *argv[])
+// {
+//   printf("sysinfotest: start\n");
+//   testcall();
+//   testmem();
+//   testproc();
+//   printf("sysinfotest: OK\n");
+//   exit(0);
+// }
 int
-main(int argc, char *argv[])
+main(void)
 {
-  printf("sysinfotest: start\n");
-  testcall();
-  testmem();
-  testproc();
-  printf("sysinfotest: OK\n");
+  struct sysinfo info;
+  
+  if (sysinfo(&info) < 0) {
+    fprintf(2, "sysload: 获取系统信息失败\n");
+    exit(1);
+  }
+  
+  // 将定点数转换为可读形式
+  int load_int = info.loadavg >> 10;  // 整数部分
+  int load_frac = ((info.loadavg & 0x3FF) * 100) >> 10;  // 小数部分(百分比)
+  
+  printf("系统状态:\n");
+  printf("空闲内存: %d KB\n", info.freemem / 1024);
+  printf("进程数量: %d\n", info.nproc);
+  printf("系统负载: %d.%02d\n", load_int, load_frac);
+  
   exit(0);
 }
