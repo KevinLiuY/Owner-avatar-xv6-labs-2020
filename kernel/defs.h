@@ -182,6 +182,8 @@ int             kama_vmprint(pagetable_t pagetable);
 pagetable_t     kama_kvminit_newpgtbl();
 void            kama_kvm_map_pagetable(pagetable_t pgtbl);
 void            kama_kvm_free_kernelpgtbl(pagetable_t pagetable);
+int             kama_kvmcopymappings(pagetable_t src, pagetable_t dst, uint64 start, uint64 sz);
+uint64          kama_kvmdealloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz);
 
 // plic.c
 void            plicinit(void);
@@ -197,7 +199,9 @@ void            virtio_disk_intr(void);
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
 
-
+//vmcopyin.c
+int             copyin_new(pagetable_t pagetable, char *dst, uint64 srcva, uint64 len);
+int             copyinstr_new(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max);
 
 // stats.c
 void            statsinit(void);
